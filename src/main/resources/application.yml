@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: payment-service
+  data:
+    mongodb:
+      auto-index-creation: true
+      uri: ${MONGO_URI}
+
+  kafka:
+    producer:
+      acks: all
+      retries: 10
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+
+app:
+  kafka:
+    endpoint: ${KAFKA_ENDPOINT:localhost:9092}
+  external-api:
+    integer-generator-url: ${INTEGER_GENERATOR:https://www.random.org/integers/?num=1&min=1&max=100&col=1&base=10&format=plain&rnd=new}
+
+security:
+  constants:
+    jwt:
+      secret: ${JWT_SECRET}

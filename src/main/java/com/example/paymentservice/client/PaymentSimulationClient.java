@@ -2,6 +2,7 @@ package com.example.paymentservice.client;
 
 import com.example.paymentservice.entity.PaymentStatus;
 import com.example.paymentservice.exception.PaymentSimulationException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -10,12 +11,13 @@ import reactor.core.publisher.Mono;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class PaymentSimulationClient {
 
     @Value("${app.external-api.integer-generator-url}")
     private String apiURI;
 
-    private final WebClient webClient = WebClient.builder().build();
+    private final WebClient webClient;
 
     public Mono<PaymentStatus> simulatePayment(){
         return webClient.get()

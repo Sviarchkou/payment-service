@@ -18,6 +18,7 @@ public class SecurityConfiguration {
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .cors(ServerHttpSecurity.CorsSpec::disable)
                 .authorizeExchange((authorize) -> authorize
+                        .pathMatchers(HttpMethod.GET,"/actuator/**").permitAll()
                         .anyExchange().authenticated()
                 )
                 .addFilterBefore(filter, SecurityWebFiltersOrder.AUTHENTICATION);

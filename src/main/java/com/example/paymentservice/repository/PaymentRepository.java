@@ -3,7 +3,7 @@ package com.example.paymentservice.repository;
 import com.example.paymentservice.entity.Payment;
 import com.example.paymentservice.entity.PaymentStatus;
 import com.example.paymentservice.reponse.PaymentSumResult;
-import org.bson.types.ObjectId;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.Aggregation;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
@@ -18,13 +18,15 @@ import java.util.UUID;
 @Repository
 public interface PaymentRepository extends ReactiveMongoRepository<Payment, String> {
 
-    Flux<Payment> findAllByStatus(PaymentStatus status);
+    Flux<Payment> findAllByStatus(PaymentStatus status, Pageable pageable);
 
-    Flux<Payment> findAllByUserIdOrOrderId(UUID userId, UUID orderId);
+    Flux<Payment> findAllByUserIdOrOrderId(UUID userId, UUID orderId, Pageable pageable);
 
-    Flux<Payment> findAllByUserId(UUID userId);
+    Flux<Payment> findAllByUserId(UUID userId, Pageable pageable);
 
-    Flux<Payment> findAllByOrderId(UUID orderId);
+    Flux<Payment> findAllByOrderId(UUID orderId, Pageable pageable);
+
+    Flux<Payment> findAllBy(Pageable pageable);
 
     @Aggregation(pipeline = {
             "{ $match: { user_id: ?0, timestamp: { $gte: ?1, $lte: ?2 }, status: 'SUCCESS' } }",

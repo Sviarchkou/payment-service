@@ -28,8 +28,8 @@ public class PaymentDto {
 
     Instant timestamp;
 
-    @Positive
-    @NotNull
+//    @Positive
+//    @NotNull
     BigDecimal paymentAmount;
 
 }

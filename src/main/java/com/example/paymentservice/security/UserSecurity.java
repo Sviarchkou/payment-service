@@ -3,6 +3,9 @@ package com.example.paymentservice.security;
 import com.example.paymentservice.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -16,18 +19,27 @@ public class UserSecurity {
     private final PaymentService paymentService;
 
     public Mono<Boolean> equalToCurrentUserId(UUID id){
-        UUID userId = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return Mono.just(userId.equals(id));
+        return ReactiveSecurityContextHolder.getContext()
+                .map(context -> (UUID) context.getAuthentication().getPrincipal())
+                .map(userId -> userId.equals(id));
     }
 
     public Mono<Boolean> isPaymentOwnedByUser(String id){
-        UUID userId = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return paymentService.findPaymentOwnerById(id).map(userId::equals);
+        return ReactiveSecurityContextHolder.getContext()
+                .map(context -> (UUID) context.getAuthentication().getPrincipal())
+                .flatMap(userId ->
+                        paymentService.findPaymentOwnerById(id)
+                                .map(userId::equals))
+                .switchIfEmpty(Mono.just(false));
     }
 
     public Mono<Boolean> isOrderOwnedByUser(UUID orderId){
-        UUID userId = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return paymentService.findPaymentOwnerByOrderId(orderId).map(userId::equals);
+        return ReactiveSecurityContextHolder.getContext()
+                .map(context -> (UUID) context.getAuthentication().getPrincipal())
+                .flatMap(userId ->
+                        paymentService.findPaymentOwnerByOrderId(orderId)
+                            .map(userId::equals))
+                .switchIfEmpty(Mono.just(false));
     }
 
 }

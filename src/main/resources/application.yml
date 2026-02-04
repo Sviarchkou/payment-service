@@ -22,12 +22,12 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
-  tracing:
-    sampling:
-      probability: 1.0
-  otlp:
-    tracing:
-      endpoint: ${TEMPO_ENDPOINT:http://tempo:4317}
+#  tracing:
+#    sampling:
+#      probability: 1.0
+#  otlp:
+#    tracing:
+#      endpoint: ${TEMPO_ENDPOINT:http://tempo:4317}
 
 app:
   kafka:
@@ -39,3 +39,6 @@ security:
   constants:
     jwt:
       secret: ${JWT_SECRET}
+
+server:
+  port: 8084

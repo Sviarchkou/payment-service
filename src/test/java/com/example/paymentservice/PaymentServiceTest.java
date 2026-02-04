@@ -2,15 +2,18 @@ package com.example.paymentservice;
 
 import com.example.paymentservice.client.PaymentSimulationClient;
 import com.example.paymentservice.dto.PaymentDto;
+import com.example.paymentservice.entity.OrderToPay;
 import com.example.paymentservice.entity.Payment;
 import com.example.paymentservice.entity.PaymentStatus;
 import com.example.paymentservice.exception.BadPathVariableForGetAllPaymentsByException;
+import com.example.paymentservice.exception.OrderToPayNotFoundException;
 import com.example.paymentservice.exception.PaymentNotFoundException;
 import com.example.paymentservice.kafka.PaymentKafkaProducer;
 import com.example.paymentservice.mapper.PaymentMapper;
 import com.example.paymentservice.reponse.PaymentSumResult;
 import com.example.paymentservice.repository.PaymentRepository;
 import com.example.paymentservice.request.DateRangeRequest;
+import com.example.paymentservice.service.OrderToPayService;
 import com.example.paymentservice.service.PaymentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,6 +21,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -27,6 +32,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,6 +46,8 @@ public class PaymentServiceTest {
     private PaymentSimulationClient paymentSimulationClient;
     @Mock
     private PaymentKafkaProducer paymentKafkaProducer;
+    @Mock
+    private OrderToPayService orderToPayService;
 
     @InjectMocks
     private PaymentService paymentService;
@@ -49,6 +57,8 @@ public class PaymentServiceTest {
     private String id;
     private UUID userId;
     private UUID orderId;
+    private final Pageable PAGEABLE = PageRequest.of(0, 20);
+    ;
 
     @BeforeEach
     void setUp() {
@@ -65,7 +75,12 @@ public class PaymentServiceTest {
     @Test
     void makePayment_success() {
         PaymentStatus status = PaymentStatus.SUCCESS;
+        OrderToPay otp = new OrderToPay();
+        otp.setOrderId(orderId);
+        otp.setUserId(userId);
+        otp.setTotalPrice(new BigDecimal("123.45"));
 
+        when(orderToPayService.getByOrderId(paymentDto.getOrderId())).thenReturn(Mono.just(otp));
         when(paymentSimulationClient.simulatePayment()).thenReturn(Mono.just(status));
         when(paymentMapper.toEntity(paymentDto)).thenReturn(payment);
         when(paymentRepository.save(payment)).thenReturn(Mono.just(payment));
@@ -75,6 +90,16 @@ public class PaymentServiceTest {
         StepVerifier.create(paymentService.makePayment(paymentDto))
                 .expectNext(paymentDto)
                 .verifyComplete();
+    }
+
+    @Test
+    void makePayment_orderToPayNotFound() {
+
+        when(orderToPayService.getByOrderId(paymentDto.getOrderId())).thenReturn(Mono.empty());
+
+        StepVerifier.create(paymentService.makePayment(paymentDto))
+                .expectError(OrderToPayNotFoundException.class)
+                .verify();
     }
 
     @Test
@@ -109,10 +134,10 @@ public class PaymentServiceTest {
 
     @Test
     void getAll_success() {
-        when(paymentRepository.findAll()).thenReturn(Flux.just(payment));
+        when(paymentRepository.findAllBy(PAGEABLE)).thenReturn(Flux.just(payment));
         when(paymentMapper.toDto(payment)).thenReturn(paymentDto);
 
-        StepVerifier.create(paymentService.getAll())
+        StepVerifier.create(paymentService.getAll(PAGEABLE))
                 .expectNext(paymentDto)
                 .verifyComplete();
     }
@@ -121,64 +146,64 @@ public class PaymentServiceTest {
     void getAllBy_uuid() {
         UUID id = UUID.randomUUID();
 
-        when(paymentRepository.findAllByUserIdOrOrderId(id, id)).thenReturn(Flux.just(payment));
+        when(paymentRepository.findAllByUserIdOrOrderId(id, id, PAGEABLE)).thenReturn(Flux.just(payment));
         when(paymentMapper.toDto(payment)).thenReturn(paymentDto);
 
-        StepVerifier.create(paymentService.getAllBy(id.toString()))
+        StepVerifier.create(paymentService.getAllBy(id.toString(), PAGEABLE))
                 .expectNext(paymentDto)
                 .verifyComplete();
     }
 
     @Test
     void getAllBy_status() {
-        when(paymentRepository.findAllByStatus(any())).thenReturn(Flux.just(payment));
+        when(paymentRepository.findAllByStatus(any(), eq(PAGEABLE))).thenReturn(Flux.just(payment));
         when(paymentMapper.toDto(payment)).thenReturn(paymentDto);
 
-        StepVerifier.create(paymentService.getAllBy("success"))
+        StepVerifier.create(paymentService.getAllBy("success", PAGEABLE))
                 .expectNext(paymentDto)
                 .verifyComplete();
     }
 
     @Test
     void getAllBy_badPathVariable() {
-        StepVerifier.create(paymentService.getAllBy("wrong_value"))
+        StepVerifier.create(paymentService.getAllBy("wrong_value", PAGEABLE))
                 .expectError(BadPathVariableForGetAllPaymentsByException.class)
                 .verify();
     }
 
     @Test
     void getAllByStatus_success() {
-        when(paymentRepository.findAllByStatus(any())).thenReturn(Flux.just(payment));
+        when(paymentRepository.findAllByStatus(any(), eq(PAGEABLE))).thenReturn(Flux.just(payment));
         when(paymentMapper.toDto(payment)).thenReturn(paymentDto);
 
-        StepVerifier.create(paymentService.getAllByStatus("success"))
+        StepVerifier.create(paymentService.getAllByStatus("success", PAGEABLE))
                 .expectNext(paymentDto)
                 .verifyComplete();
     }
 
     @Test
     void getAllByStatus_invalid() {
-        StepVerifier.create(paymentService.getAllByStatus("invalid"))
+        StepVerifier.create(paymentService.getAllByStatus("invalid", PAGEABLE))
                 .expectError(BadPathVariableForGetAllPaymentsByException.class)
                 .verify();
     }
 
     @Test
     void getAllByUserId_success() {
-        when(paymentRepository.findAllByUserId(userId)).thenReturn(Flux.just(payment));
+        when(paymentRepository.findAllByUserId(userId, PAGEABLE)).thenReturn(Flux.just(payment));
         when(paymentMapper.toDto(payment)).thenReturn(paymentDto);
 
-        StepVerifier.create(paymentService.getAllByUserId(userId))
+        StepVerifier.create(paymentService.getAllByUserId(userId, PAGEABLE))
                 .expectNext(paymentDto)
                 .verifyComplete();
     }
 
     @Test
     void getAllByOrderId_success() {
-        when(paymentRepository.findAllByOrderId(orderId)).thenReturn(Flux.just(payment));
+        when(paymentRepository.findAllByOrderId(orderId, PAGEABLE)).thenReturn(Flux.just(payment));
         when(paymentMapper.toDto(payment)).thenReturn(paymentDto);
 
-        StepVerifier.create(paymentService.getAllByOrderId(orderId))
+        StepVerifier.create(paymentService.getAllByOrderId(orderId, PAGEABLE))
                 .expectNext(paymentDto)
                 .verifyComplete();
     }

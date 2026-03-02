@@ -80,6 +80,9 @@ public class PaymentServiceTest {
         otp.setUserId(userId);
         otp.setTotalPrice(new BigDecimal("123.45"));
 
+        paymentDto.setOrderId(orderId);
+        paymentDto.setUserId(userId);
+
         when(orderToPayService.getByOrderId(paymentDto.getOrderId())).thenReturn(Mono.just(otp));
         when(paymentSimulationClient.simulatePayment()).thenReturn(Mono.just(status));
         when(paymentMapper.toEntity(paymentDto)).thenReturn(payment);

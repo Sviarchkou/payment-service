@@ -7,6 +7,7 @@ import com.example.paymentservice.entity.PaymentStatus;
 import com.example.paymentservice.exception.BadPathVariableForGetAllPaymentsByException;
 import com.example.paymentservice.exception.OrderToPayNotFoundException;
 import com.example.paymentservice.exception.PaymentNotFoundException;
+import com.example.paymentservice.exception.WrongUserIdException;
 import com.example.paymentservice.kafka.PaymentKafkaProducer;
 import com.example.paymentservice.mapper.PaymentMapper;
 import com.example.paymentservice.repository.PaymentRepository;
@@ -36,8 +37,10 @@ public class PaymentService {
                 .switchIfEmpty(Mono.error(
                         new OrderToPayNotFoundException("Order with id: %s is not found in pending to pay list".formatted(paymentDto.getOrderId()))))
                 .flatMap(orderToPay -> {
+                    if (!orderToPay.getUserId().equals(paymentDto.getUserId())){
+                        return Mono.error(new WrongUserIdException("User with id: %s can not pay this order".formatted(paymentDto.getUserId())));
+                    }
                     paymentDto.setPaymentAmount(orderToPay.getTotalPrice());
-                    // опционально добавить получение данных карты для симуляции оплаты
 
                     return paymentSimulationClient.simulatePayment()
                             .flatMap(paymentStatus -> save(paymentDto, paymentStatus))

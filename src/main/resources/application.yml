@@ -14,6 +14,22 @@ spring:
         enable.idempotence: true
         max.in.flight.requests.per.connection: 5
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${TEMPO_ENDPOINT:http://tempo:4317}
+LOKI_URL: ${LOKI_URL:-http://localhost:3100/loki/api/v1/push}
+
 app:
   kafka:
     endpoint: ${KAFKA_ENDPOINT:localhost:9092}

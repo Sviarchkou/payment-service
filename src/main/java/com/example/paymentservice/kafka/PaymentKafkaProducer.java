@@ -24,10 +24,11 @@ public class PaymentKafkaProducer {
     private final KafkaTemplate<String, PaymentDto> kafkaTemplate;
 
     public Mono<PaymentDto> sendPaymentToKafka(PaymentDto dto) {
-        return Mono.fromCallable(() ->
-                        kafkaTemplate.send("payments", dto).get(5, TimeUnit.SECONDS)
+        return Mono.fromFuture(() ->
+                        kafkaTemplate.send("payments", dto)//.get(5, TimeUnit.SECONDS)
                 )
-                .subscribeOn(Schedulers.boundedElastic())
+                .timeout(Duration.ofSeconds(5))
+                //.subscribeOn(Schedulers.boundedElastic())
                 .retryWhen(
                         Retry.backoff(5, Duration.ofMillis(200))
                                 .filter(t -> {
@@ -48,5 +49,27 @@ public class PaymentKafkaProducer {
                 .thenReturn(dto);
     }
 
+
+//    public Mono<PaymentDto> sendPaymentAToKafka(PaymentDto dto) {
+//        return Mono.defer(() ->
+//                        Mono.fromFuture(kafkaTemplate.send("payments", dto))
+//                )
+//                .timeout(Duration.ofSeconds(5))
+//                .retryWhen(
+//                        Retry.backoff(5, Duration.ofMillis(200))
+//                                .filter(e -> e instanceof RetriableException
+//                                        || e instanceof TimeoutException)
+//                                .doBeforeRetry(rs ->
+//                                        log.warn("Retry Kafka send, attempt={}, reason={}",
+//                                                rs.totalRetries() + 1,
+//                                                rs.failure().toString()
+//                                        )
+//                                )
+//                                .onRetryExhaustedThrow((spec, signal) ->
+//                                        new KafkaSendException("Kafka send failed", signal.failure())
+//                                )
+//                )
+//                .thenReturn(dto);
+//    }
 
 }

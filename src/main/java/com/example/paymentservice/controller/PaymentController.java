@@ -5,6 +5,9 @@ import com.example.paymentservice.reponse.PaymentSumResult;
 import com.example.paymentservice.request.DateRangeRequest;
 import com.example.paymentservice.service.PaymentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,40 +32,50 @@ public class PaymentController {
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public Mono<ResponseEntity<List<PaymentDto>>> getAll() {
-        return paymentService.getAll()
+    public Mono<ResponseEntity<List<PaymentDto>>> getAll(
+            @PageableDefault(size = 20, sort = "timestamp", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return paymentService.getAll(pageable)
                 .collectList()
                 .map(paymentDtoList ->  ResponseEntity.ok().body(paymentDtoList));
     }
 
     @GetMapping("all/{variable}")
     @PreAuthorize("hasRole('ADMIN')")
-    public Mono<ResponseEntity<List<PaymentDto>>> getAllBy(@PathVariable String variable) {
-        return paymentService.getAllBy(variable)
+    public Mono<ResponseEntity<List<PaymentDto>>> getAllBy(
+            @PathVariable String variable,
+            @PageableDefault(size = 20, sort = "timestamp", direction = Sort.Direction.DESC) Pageable pageable) {
+        return paymentService.getAllBy(variable, pageable)
                 .collectList()
                 .map(paymentDtoList ->  ResponseEntity.ok().body(paymentDtoList));
     }
 
     @GetMapping("users/{userId}")
     @PreAuthorize("hasRole('ADMIN') or @userSecurity.equalToCurrentUserId(#userId)")
-    public Mono<ResponseEntity<List<PaymentDto>>> getAllByUserId(@PathVariable UUID userId) {
-        return paymentService.getAllByUserId(userId)
+    public Mono<ResponseEntity<List<PaymentDto>>> getAllByUserId(
+            @PathVariable UUID userId,
+            @PageableDefault(size = 20, sort = "timestamp", direction = Sort.Direction.DESC) Pageable pageable) {
+        return paymentService.getAllByUserId(userId, pageable)
                 .collectList()
                 .map(paymentDtoList ->  ResponseEntity.ok().body(paymentDtoList));
     }
 
     @GetMapping("orders/{orderId}")
     @PreAuthorize("hasRole('ADMIN') or @userSecurity.isOrderOwnedByUser(#orderId)")
-    public Mono<ResponseEntity<List<PaymentDto>>> getByOrderId(@PathVariable UUID orderId) {
-        return paymentService.getAllByOrderId(orderId)
+    public Mono<ResponseEntity<List<PaymentDto>>> getByOrderId(
+            @PathVariable UUID orderId,
+            @PageableDefault(size = 20, sort = "timestamp", direction = Sort.Direction.DESC) Pageable pageable) {
+        return paymentService.getAllByOrderId(orderId, pageable)
                 .collectList()
                 .map(paymentDtoList ->  ResponseEntity.ok().body(paymentDtoList));
     }
 
     @GetMapping("status/{status}")
     @PreAuthorize("hasRole('ADMIN')")
-    public Mono<ResponseEntity<List<PaymentDto>>> getByStatus(@PathVariable String status) {
-        return paymentService.getAllByStatus(status)
+    public Mono<ResponseEntity<List<PaymentDto>>> getByStatus(
+            @PathVariable String status,
+            @PageableDefault(size = 20, sort = "timestamp", direction = Sort.Direction.DESC) Pageable pageable) {
+        return paymentService.getAllByStatus(status, pageable)
                 .collectList()
                 .map(paymentDtoList ->  ResponseEntity.ok().body(paymentDtoList));
     }

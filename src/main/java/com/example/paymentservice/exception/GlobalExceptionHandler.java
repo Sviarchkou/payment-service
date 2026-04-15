@@ -42,6 +42,11 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
+    @ExceptionHandler(WrongUserIdException.class)
+    public ResponseEntity<ErrorResponse> handle(WrongUserIdException ex) {
+        return buildErrorResponse(ex, HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
     private ResponseEntity<ErrorResponse> buildErrorResponse(Throwable ex, HttpStatusCode status, String message) {
         return ResponseEntity.status(status).body(ErrorResponse.create(ex, status, message));
     }
